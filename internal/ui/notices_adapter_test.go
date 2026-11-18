@@ -1665,6 +1665,25 @@ func TestFeedResultClearsThePendingAlert(t *testing.T) {
 	}
 }
 
+// The feed is fetched again on every launch, so a message the store already
+// has read must not open the panel on top of the list each time.
+func TestReadFeedMessageDoesNotReopenThePanel(t *testing.T) {
+	st := noticeStore(t)
+	seen := []string{`["feed-read"]`}
+	if err := st.SetSetting(uirelease.SeenSetting, seen[0]); err != nil {
+		t.Fatal(err)
+	}
+	m := noticeModel(st, "v0.2.0")
+	m.release.Feed = append(m.release.Feed, feed.Message{ID: "feed-read", Banner: "old news", Title: "Already read"})
+	m.Update(uirelease.FeedMsg{Startup: true, Messages: m.release.Feed})
+	if m.noticesOpen() {
+		t.Fatal("a feed message already read opened the panel")
+	}
+	if !contains(noticeIDs(m.activeNotices()), "feed-read") {
+		t.Fatal("a read feed message should stay listed")
+	}
+}
+
 func TestFeedPendingWaitsForStartupResult(t *testing.T) {
 	for _, manual := range []bool{true, false} {
 		m := footModel(t)

@@ -117,12 +117,23 @@ func (m *Model) applyNotices(apply func()) {
 	before := uinotices.IDs(m.activeNotices())
 	m.keepNoticeSelection(apply)
 	_, open := surfaceOf[*uinotices.Surface](m)
-	staged := m.notices.Staged(uinotices.Added(before, m.activeNotices()), open, m.listReadyForNotice())
+	staged := m.notices.Staged(m.addedNotice(before), open, m.listReadyForNotice())
 	if staged.Open != "" {
 		m.openNotices(staged.Open)
 		return
 	}
 	m.notices.Held = staged.Hold
+}
+
+// addedNotice is the notice a change added, unless the store already has it
+// read: the feed arrives on every launch, and a message seen once is no news
+// to open the panel on again.
+func (m *Model) addedNotice(before map[string]bool) string {
+	id := uinotices.Added(before, m.activeNotices())
+	if m.notices.Seen(id) {
+		return ""
+	}
+	return id
 }
 
 func (m *Model) listReadyForNotice() bool {
